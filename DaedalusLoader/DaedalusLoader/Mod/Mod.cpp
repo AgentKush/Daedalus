@@ -30,6 +30,11 @@ namespace CallBackHandler
 	{
 		Mod::ModRef->DX11Present(pDevice, pContext, pRenderTargetView);
 	}
+
+	void CallBackDX12Present(IDXGISwapChain* pSwapChain, ID3D12GraphicsCommandList* pCommandList)
+	{
+		Mod::ModRef->DX12Present(pSwapChain, pCommandList);
+	}
 }
 
 void Mod::InitGameState()
@@ -52,6 +57,10 @@ void Mod::DX11Present(ID3D11Device* pDevice, ID3D11DeviceContext* pContext, ID3D
 {
 }
 
+void Mod::DX12Present(IDXGISwapChain* pSwapChain, ID3D12GraphicsCommandList* pCommandList)
+{
+}
+
 void Mod::DrawImGui()
 {
 }
@@ -63,6 +72,7 @@ void Mod::SetupHooks()
 	Global::GetGlobals()->eventSystem.registerEvent(new Event<std::wstring, UE4::AActor*>("PostBeginPlay", &CallBackHandler::CallBackPostBeginPlay));
 	Global::GetGlobals()->eventSystem.registerEvent(new Event<>("DrawImGui", &CallBackHandler::CallBackDrawImGui));
 	Global::GetGlobals()->eventSystem.registerEvent(new Event<ID3D11Device*, ID3D11DeviceContext*, ID3D11RenderTargetView*>("DX11Present", &CallBackHandler::CallBackDX11Present));
+	Global::GetGlobals()->eventSystem.registerEvent(new Event<IDXGISwapChain*, ID3D12GraphicsCommandList*>("DX12Present", &CallBackHandler::CallBackDX12Present));
 }
 
 void Mod::CompleteModCreation()

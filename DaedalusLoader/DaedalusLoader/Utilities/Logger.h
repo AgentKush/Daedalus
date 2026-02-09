@@ -2,11 +2,12 @@
 #include <windows.h>
 #include <vector>
 #include <string>
+#include <cstdio>
+#include <io.h>
 
 #include "../UMLDefs.h"
 
 #define APP_NAME "Daedalus"
-#define LOG_STREAM stdout
 
 class LOADER_API Log
 {
@@ -19,43 +20,54 @@ private:
 		INFO_PRINTCONSOLE = 3
 	};
 
+	static bool IsConsoleValid()
+	{
+		// Check once and cache — avoids repeated CRT calls on invalid handles
+		static int cached = -1;
+		if (cached == -1)
+		{
+			HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+			cached = (h != NULL && h != INVALID_HANDLE_VALUE) ? 1 : 0;
+		}
+		return cached == 1;
+	}
+
 	template <typename ...Args>
 	static void LogMsg(MsgType type, const std::string& format, Args&& ...args)
 	{
-		HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+		auto size = std::snprintf(nullptr, 0, format.c_str(), std::forward<Args>(args)...);
+		if (size < 0) size = 0;
+		std::string output(size + 1, '\0');
+		std::snprintf(&output[0], size + 1, format.c_str(), std::forward<Args>(args)...);
+		output.resize(size); // trim null
 
-		fprintf(LOG_STREAM, "[");
-		SetConsoleTextAttribute(hConsole, 11);
-		fprintf(LOG_STREAM, APP_NAME);
-		SetConsoleTextAttribute(hConsole, 7);
-		fprintf(LOG_STREAM, "][");
-
-		switch (type)
+		// Only write to console if we have a valid handle
+		if (IsConsoleValid())
 		{
-		case INFO_MSG:
-			SetConsoleTextAttribute(hConsole, 10);
-			fprintf(LOG_STREAM, "INFO");
-			break;
-		case WARNING_MSG:
-			SetConsoleTextAttribute(hConsole, 14);
-			fprintf(LOG_STREAM, "WARNING");
-			break;
-		case ERROR_MSG:
-			SetConsoleTextAttribute(hConsole, 12);
-			fprintf(LOG_STREAM, "ERROR");
-			break;
-		case INFO_PRINTCONSOLE:
-			SetConsoleTextAttribute(hConsole, 13);
-			fprintf(LOG_STREAM, "PRINT");
-			break;
+			HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+			const char* label = "INFO";
+			WORD color = 10;
+			switch (type)
+			{
+			case WARNING_MSG: label = "WARNING"; color = 14; break;
+			case ERROR_MSG: label = "ERROR"; color = 12; break;
+			case INFO_PRINTCONSOLE: label = "PRINT"; color = 13; break;
+			}
+
+			// Use WriteConsoleA instead of fprintf to avoid CRT issues
+			DWORD written;
+			SetConsoleTextAttribute(hConsole, 11);
+			WriteConsoleA(hConsole, "[", 1, &written, NULL);
+			WriteConsoleA(hConsole, APP_NAME, (DWORD)strlen(APP_NAME), &written, NULL);
+			SetConsoleTextAttribute(hConsole, 7);
+			WriteConsoleA(hConsole, "][", 2, &written, NULL);
+			SetConsoleTextAttribute(hConsole, color);
+			WriteConsoleA(hConsole, label, (DWORD)strlen(label), &written, NULL);
+			SetConsoleTextAttribute(hConsole, 7);
+			std::string line = "] " + output + "\n";
+			WriteConsoleA(hConsole, line.c_str(), (DWORD)line.size(), &written, NULL);
 		}
 
-		auto size = std::snprintf(nullptr, 0, format.c_str(), std::forward<Args>(args)...);
-		std::string output(size + 1, '\0');
-		std::sprintf(&output[0], format.c_str(), std::forward<Args>(args)...);
-
-		SetConsoleTextAttribute(hConsole, 7);
-		fprintf(LOG_STREAM, "] %s\n", output.c_str());
 		LogArray.push_back(output);
 		Log::DumpLog();
 	}
@@ -100,12 +112,15 @@ public:
 	{
 		FILE* Log = NULL;
 		fopen_s(&Log, "Daedalus-Log.txt", "w+");
+		if (!Log)
+			return false;
 		for (size_t i = 0; i < LogArray.size(); i++)
 		{
 			auto currentstring = LogArray[i];
 			fprintf(Log, "%s\n", currentstring.c_str());
 		}
 		fclose(Log);
+		return true;
 	}
 
 private:

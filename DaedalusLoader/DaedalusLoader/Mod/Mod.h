@@ -40,6 +40,9 @@ public:
 	//DX11 hook for when an image will be presented to the screen
 	virtual void DX11Present(ID3D11Device* pDevice, ID3D11DeviceContext* pContext, ID3D11RenderTargetView* pRenderTargetView);
 
+	//DX12 hook for when an image will be presented to the screen
+	virtual void DX12Present(IDXGISwapChain* pSwapChain, ID3D12GraphicsCommandList* pCommandList);
+
 	virtual void OnModMenuButtonPressed();
 
 	//Called When Mod Construct Finishes

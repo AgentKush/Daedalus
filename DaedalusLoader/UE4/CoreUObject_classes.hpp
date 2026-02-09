@@ -33,6 +33,7 @@ namespace UE4
 		template<typename T>
 		static T* FindObject(const std::string& name)
 		{
+			if (!GObjects) return nullptr;
 			if (IsChunkedArray())
 			{
 				for (int i = 0; i < GObjects->GetAsChunckArray().Num(); ++i)

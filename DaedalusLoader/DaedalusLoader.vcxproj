@@ -33,10 +33,12 @@
     <ClCompile Include="ImGui\imgui_demo.cpp" />
     <ClCompile Include="ImGui\imgui_draw.cpp" />
     <ClCompile Include="ImGui\imgui_impl_dx11.cpp" />
+    <ClCompile Include="ImGui\imgui_impl_dx12.cpp" />
     <ClCompile Include="ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="ImGui\imgui_tables.cpp" />
     <ClCompile Include="ImGui\imgui_widgets.cpp" />
     <ClCompile Include="LoaderUI.cpp" />
+    <ClCompile Include="DaedalusLoader\Config\DaedalusConfig.cpp" />
     <ClCompile Include="PakLoader.cpp" />
     <ClCompile Include="sdk\sdk.cpp" />
     <ClCompile Include="UE4\Basic.cpp" />
@@ -59,12 +61,14 @@
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />
     <ClInclude Include="ImGui\imgui_impl_dx11.h" />
+    <ClInclude Include="ImGui\imgui_impl_dx12.h" />
     <ClInclude Include="ImGui\imgui_impl_win32.h" />
     <ClInclude Include="ImGui\imgui_internal.h" />
     <ClInclude Include="ImGui\imstb_rectpack.h" />
     <ClInclude Include="ImGui\imstb_textedit.h" />
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="LoaderUI.h" />
+    <ClInclude Include="DaedalusLoader\Config\DaedalusConfig.h" />
     <ClInclude Include="PakLoader.h" />
     <ClInclude Include="SDK.hpp" />
     <ClInclude Include="sdk\sdk-helper.h" />

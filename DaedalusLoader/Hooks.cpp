@@ -8,6 +8,7 @@
 #include "DaedalusLoader/Memory/CoreModLoader.h"
 #include "UE4/Ue4.hpp"
 #include "LoaderUI.h"
+#include "DaedalusLoader/Config/DaedalusConfig.h"
 bool bIsProcessInternalsHooked = false;
 bool GameStateClassInitNotRan = true;
 
@@ -280,6 +281,7 @@ namespace Hooks
 		Log::Info("ScanLoadedPaks Setup");
 		MinHook::Add(GameProfile::SelectedGameProfile.GameStateInit, &HookedFunctions::hookInitGameState, &HookedFunctions::origInitGameState, "AGameModeBase::InitGameState");
 		MinHook::Add(GameProfile::SelectedGameProfile.BeginPlay, &HookedFunctions::hookBeginPlay, &HookedFunctions::origBeginPlay, "AActor::BeginPlay");
+		DaedalusConfig::GetConfig()->LoadConfig();
 		LoaderUI::GetUI()->CreateUILogicThread();
 		if (!GameProfile::SelectedGameProfile.bDelayGUISpawn)
 		{
