@@ -269,7 +269,7 @@ void DrawImGui()
 
 LRESULT CALLBACK LoaderUI::hookWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	CallWindowProc(ImGui_ImplWin32_WndProcHandler, hWnd, uMsg, wParam, lParam);
+	ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
 
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.WantCaptureMouse || io.WantCaptureKeyboard) {
@@ -490,13 +490,13 @@ DWORD __stdcall InitDX11Hook(LPVOID)
 
 	LoaderUI::GetUI()->pSwapChainVtable = (DWORD_PTR*)pSwapChain;
 	LoaderUI::GetUI()->pSwapChainVtable = (DWORD_PTR*)LoaderUI::GetUI()->pSwapChainVtable[0];
-	LoaderUI::GetUI()->phookD3D11Present = (LoaderUI::D3D11PresentHook)LoaderUI::GetUI()->pSwapChainVtable[8];
+	LoaderUI::GetUI()->phookDXGIPresent = (LoaderUI::DXGIPresentHook)LoaderUI::GetUI()->pSwapChainVtable[8];
 	MinHook::Add((DWORD64)LoaderUI::GetUI()->pSwapChainVtable[13], &hookResizeBuffers, &LoaderUI::GetUI()->ResizeBuffers, "DX11-ResizeBuffers");
-	MinHook::Add((DWORD64)LoaderUI::GetUI()->phookD3D11Present, &hookD3D11Present, &D3D11Present, "DX11-Present");
+	MinHook::Add((DWORD64)LoaderUI::GetUI()->phookDXGIPresent, &hookD3D11Present, &D3D11Present, "DX11-Present");
 
 	DWORD dPresentwOld;
 	DWORD dResizeOld;
-	VirtualProtect(LoaderUI::GetUI()->phookD3D11Present, 2, PAGE_EXECUTE_READWRITE, &dPresentwOld);
+	VirtualProtect(LoaderUI::GetUI()->phookDXGIPresent, 2, PAGE_EXECUTE_READWRITE, &dPresentwOld);
 	VirtualProtect((LPVOID)LoaderUI::GetUI()->pSwapChainVtable[13], 2, PAGE_EXECUTE_READWRITE, &dResizeOld);
 
 	while (true)
