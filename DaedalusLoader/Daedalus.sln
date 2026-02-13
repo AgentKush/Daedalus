@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32616.157
@@ -6,6 +6,8 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DaedalusLoader", "DaedalusLoader.vcxproj", "{DE3BC2AD-2683-4D76-AD72-95D98164E9C7}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExampleMod", "..\ExampleMod\ExampleMod.vcxproj", "{A1BBEE5E-6F8A-46A1-A489-75AA621E1B5A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RadialToolSwap", "..\Mods\RadialToolSwap\RadialToolSwap.vcxproj", "{B2C7D4E5-1F3A-4B6C-9D8E-0A2F5C7E9B1D}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LoaderAutoInjector", "..\LoaderAutoInjector\LoaderAutoInjector.vcxproj", "{ACD937DA-925A-4640-9AD0-39A381D323EA}"
 EndProject
@@ -22,6 +24,14 @@ Global
 		{A1BBEE5E-6F8A-46A1-A489-75AA621E1B5A}.Release|x64.Build.0 = Release|x64
 		{ACD937DA-925A-4640-9AD0-39A381D323EA}.Release|x64.ActiveCfg = Release|x64
 		{ACD937DA-925A-4640-9AD0-39A381D323EA}.Release|x64.Build.0 = Release|x64
+		{B2C7D4E5-1F3A-4B6C-9D8E-0A2F5C7E9B1D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B2C7D4E5-1F3A-4B6C-9D8E-0A2F5C7E9B1D}.Debug|Win32.Build.0 = Debug|Win32
+		{B2C7D4E5-1F3A-4B6C-9D8E-0A2F5C7E9B1D}.Debug|x64.ActiveCfg = Debug|x64
+		{B2C7D4E5-1F3A-4B6C-9D8E-0A2F5C7E9B1D}.Debug|x64.Build.0 = Debug|x64
+		{B2C7D4E5-1F3A-4B6C-9D8E-0A2F5C7E9B1D}.Release|Win32.ActiveCfg = Release|Win32
+		{B2C7D4E5-1F3A-4B6C-9D8E-0A2F5C7E9B1D}.Release|Win32.Build.0 = Release|Win32
+		{B2C7D4E5-1F3A-4B6C-9D8E-0A2F5C7E9B1D}.Release|x64.ActiveCfg = Release|x64
+		{B2C7D4E5-1F3A-4B6C-9D8E-0A2F5C7E9B1D}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
