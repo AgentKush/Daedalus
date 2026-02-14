@@ -1,6 +1,7 @@
 #include "Utilities/Logger.h"
 #include "Utilities/MinHook.h"
 #include "GameInfo/GameInfo.h"
+#include "CrashHandler/CrashHandler.h"
 
 BOOL APIENTRY DllMain(HMODULE hModule,
     DWORD  ul_reason_for_call,
@@ -10,6 +11,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
+        CrashHandler::Install();
         GameProfile::CreateGameProfile();
         break;
     case DLL_THREAD_ATTACH:
@@ -19,6 +21,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     case DLL_PROCESS_DETACH:
         MH_DisableHook(MH_ALL_HOOKS);
         MH_Uninitialize();
+        CrashHandler::Uninstall();
         break;
     }
     return TRUE;

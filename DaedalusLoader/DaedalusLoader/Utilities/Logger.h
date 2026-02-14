@@ -123,6 +123,9 @@ public:
 		return true;
 	}
 
+	// Public access for ImGui console window
+	static const std::vector<std::string>& GetLogArray() { return LogArray; }
+
 private:
 	static std::vector<std::string> LogArray;
 };

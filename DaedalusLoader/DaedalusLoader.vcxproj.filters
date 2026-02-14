@@ -19,10 +19,14 @@
     <ClCompile Include="DaedalusLoader\Memory\CoreModLoader.cpp" />
     <ClCompile Include="DaedalusLoader\Memory\mem.cpp" />
     <ClCompile Include="DaedalusLoader\Mod\Mod.cpp" />
+    <ClCompile Include="DaedalusLoader\Mod\ModDependencyResolver.cpp" />
     <ClCompile Include="DaedalusLoader\Utilities\Dumper.cpp" />
     <ClCompile Include="DaedalusLoader\Utilities\EngineDefFinder.cpp" />
     <ClCompile Include="DaedalusLoader\Utilities\Globals.cpp" />
     <ClCompile Include="DaedalusLoader\Utilities\Logger.cpp" />
+    <ClCompile Include="DaedalusLoader\Config\DaedalusConfig.cpp" />
+    <ClCompile Include="DaedalusLoader\Cache\OffsetCache.cpp" />
+    <ClCompile Include="DaedalusLoader\CrashHandler\CrashHandler.cpp" />
     <ClCompile Include="sdk\sdk.cpp">
       <Filter>sdk</Filter>
     </ClCompile>
@@ -48,6 +52,7 @@
     <ClInclude Include="DaedalusLoader\Memory\CoreModLoader.h" />
     <ClInclude Include="DaedalusLoader\Memory\mem.h" />
     <ClInclude Include="DaedalusLoader\Mod\Mod.h" />
+    <ClInclude Include="DaedalusLoader\Mod\ModDependencyResolver.h" />
     <ClInclude Include="DaedalusLoader\Utilities\Dumper.h" />
     <ClInclude Include="DaedalusLoader\Utilities\EngineDefFinder.h" />
     <ClInclude Include="DaedalusLoader\Utilities\Globals.h" />
@@ -55,6 +60,9 @@
     <ClInclude Include="DaedalusLoader\Utilities\MinHook.h" />
     <ClInclude Include="DaedalusLoader\Utilities\Pattern.h" />
     <ClInclude Include="DaedalusLoader\Utilities\Version.h" />
+    <ClInclude Include="DaedalusLoader\Config\DaedalusConfig.h" />
+    <ClInclude Include="DaedalusLoader\Cache\OffsetCache.h" />
+    <ClInclude Include="DaedalusLoader\CrashHandler\CrashHandler.h" />
     <ClInclude Include="SDK.hpp">
       <Filter>sdk</Filter>
     </ClInclude>

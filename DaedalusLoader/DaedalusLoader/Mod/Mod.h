@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 #include "Utilities/Logger.h"
 #include "GameInfo/GameInfo.h"
 #include "Utilities/Globals.h"
@@ -16,6 +17,11 @@ public:
 	std::string ModAuthors;
 	std::string ModLoaderVersion;
 	bool UseMenuButton = 0;
+
+	// Dependency system - set these in your mod constructor
+	// Each string is the ModName of a required dependency
+	std::vector<std::string> Dependencies;
+
 	//ModInternals
 	bool IsFinishedCreating = 0;
 	

@@ -82,7 +82,7 @@ void Mod::CompleteModCreation()
 	Log::Info("Core Mod Created: %s", ModName.c_str());
 	if (ModLoaderVersion != MODLOADER_VERSION)
 	{
-		Log::Warn("Mod: %s was created with a different version of the Unreal Mod Loader. This mod may be unstable.", ModName.c_str());
+		Log::Warn("Mod: %s was created with a different version of the Daedalus Mod Loader. This mod may be unstable.", ModName.c_str());
 	}
 }
 

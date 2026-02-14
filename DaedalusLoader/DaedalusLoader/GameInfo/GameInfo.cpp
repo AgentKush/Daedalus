@@ -1,23 +1,57 @@
-#include "GameInfo.h"
+﻿#include "GameInfo.h"
 #include <iostream>
 #include "Utilities/Logger.h"
 #include <string>
 #include <filesystem>
 #include <detours.h>
+#include <dbghelp.h>
 #include "INI.h"
 #include "Utilities/Pattern.h"
 #include "Utilities/Version.h"
+#include "Cache/OffsetCache.h"
 #include "../Hooks.h"
 #include "../UE4/Ue4.hpp"
 
+#pragma comment(lib, "dbghelp.lib")
 #pragma execution_character_set("utf-8")
 
 #define VALIDATE_PROFILE_DETOUR(fname, profileVar) \
     { \
-        PVOID __fndPtr = DetourFindFunction(GAME_EXECUTABLE_NAME, #fname); \
+        PVOID __fndPtr = nullptr; \
+        /* Tier 1: Check cache */ \
+        DWORD64 __cached = OffsetCache::Get(#fname); \
+        if (__cached) \
+        { \
+            __fndPtr = (PVOID)__cached; \
+            Log::Info("Found %s [cache]: 0x%p", #fname, __fndPtr); \
+        } \
+        /* Tier 2: DetourFindFunction (PDB) */ \
+        if (!__fndPtr) \
+        { \
+            __fndPtr = DetourFindFunction(GAME_EXECUTABLE_NAME, #fname); \
+            if (__fndPtr) \
+            { \
+                Log::Info("Found %s [PDB]: 0x%p", #fname, __fndPtr); \
+                OffsetCache::Put(#fname, (DWORD64)__fndPtr, "pdb"); \
+            } \
+        } \
+        /* Tier 3: DbgHelp SymFromName fallback */ \
+        if (!__fndPtr && g_DbgHelpReady) \
+        { \
+            char __symBuf[sizeof(SYMBOL_INFO) + MAX_SYM_NAME]; \
+            SYMBOL_INFO* __sym = (SYMBOL_INFO*)__symBuf; \
+            memset(__symBuf, 0, sizeof(__symBuf)); \
+            __sym->SizeOfStruct = sizeof(SYMBOL_INFO); \
+            __sym->MaxNameLen = MAX_SYM_NAME; \
+            if (SymFromName(GetCurrentProcess(), #fname, __sym)) \
+            { \
+                __fndPtr = (PVOID)__sym->Address; \
+                Log::Info("Found %s [DbgHelp]: 0x%p", #fname, __fndPtr); \
+                OffsetCache::Put(#fname, (DWORD64)__fndPtr, "dbghelp"); \
+            } \
+        } \
         if (__fndPtr) \
         { \
-            Log::Info("Found %s: 0x%p", #fname, __fndPtr); \
             GameProfile::SelectedGameProfile.profileVar = (DWORD64)__fndPtr; \
         } \
         else \
@@ -27,10 +61,11 @@
     }
 
 GameProfile GameProfile::SelectedGameProfile;
+static bool g_DbgHelpReady = false;
 
 void PrintLogo()
 {
-    const char* logo =
+        const char* logo =
         " ██████╗░░█████╗░███████╗██████╗░░█████╗░██╗░░░░░██╗░░░██╗░██████╗ \n"
         " ██╔══██╗██╔══██╗██╔════╝██╔══██╗██╔══██╗██║░░░░░██║░░░██║██╔════╝ \n"
         " ██║░░██║███████║█████╗░░██║░░██║███████║██║░░░░░██║░░░██║╚█████╗░ \n"
@@ -84,7 +119,7 @@ void SetupProfile()
 #pragma warning(pop)
 
     PrintLogo();
-    Log::Info("UnrealModLoader Created by ~Russell.J Release V %s", MODLOADER_VERSION);
+    Log::Info("Daedalus Mod Loader - Release V %s", MODLOADER_VERSION);
     Log::Info("Adapted by edmiester777 for use with Icarus");
     
 
@@ -141,23 +176,65 @@ void SetupProfile()
 
     GameProfile::SelectedGameProfile.UsesFNamePool = true;
 
-    // FNamePool uses GetNamePool() to get singleton global object. This presents a problem for
-    // using detours because there is no exported symbol. Function is defined in UnrealNames.cpp
-    // and exclusively used there. Unless we have engine PDBs, we must still use pattern matching.
-    //
-    // shit.
-    auto FPoolPat = Pattern::Find("74 09 48 8D 15 ? ? ? ? EB 16");
-    if (FPoolPat != nullptr)
+    // Load offset cache (invalidates automatically when exe changes)
+    OffsetCache::Load();
+
+    // FNamePool - check cache first, fall back to pattern scan
+    DWORD64 cachedGName = OffsetCache::Get("FNamePool");
+    if (cachedGName)
     {
-        auto FPoolPatoffset = *reinterpret_cast<uint32_t*>(FPoolPat + 5);
-        GameProfile::SelectedGameProfile.GName = (DWORD64)(FPoolPat + 9 + FPoolPatoffset);
-        Log::Info("FoundNamePool: 0x%p", GameProfile::SelectedGameProfile.GName);
+        GameProfile::SelectedGameProfile.GName = cachedGName;
+        Log::Info("FoundNamePool [cache]: 0x%p", cachedGName);
     }
     else
     {
-        Log::Error("GName Could Not Be Found!");
+        auto FPoolPat = Pattern::Find("74 09 48 8D 15 ? ? ? ? EB 16");
+        if (FPoolPat != nullptr)
+        {
+            auto FPoolPatoffset = *reinterpret_cast<uint32_t*>(FPoolPat + 5);
+            GameProfile::SelectedGameProfile.GName = (DWORD64)(FPoolPat + 9 + FPoolPatoffset);
+            Log::Info("FoundNamePool [pattern]: 0x%p", GameProfile::SelectedGameProfile.GName);
+            OffsetCache::Put("FNamePool", GameProfile::SelectedGameProfile.GName, "pattern");
+        }
+        else
+        {
+            Log::Error("GName Could Not Be Found!");
+        }
     }
 
+    // Initialize DbgHelp for symbol lookup fallback
+    {
+        SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS);
+        // Build search path: current dir + exe directory for PDB resolution
+        std::string symSearchPath = std::filesystem::current_path().string();
+        {
+            char __exePath[MAX_PATH];
+            GetModuleFileNameA(GetModuleHandleA(GAME_EXECUTABLE_NAME), __exePath, MAX_PATH);
+            std::string exeDir(__exePath);
+            auto lastSlash = exeDir.find_last_of("/\\");
+            if (lastSlash != std::string::npos) exeDir = exeDir.substr(0, lastSlash);
+            symSearchPath += ";" + exeDir;
+        }
+        if (SymInitialize(GetCurrentProcess(), symSearchPath.c_str(), FALSE))
+        {
+            HMODULE hGame = GetModuleHandleA(GAME_EXECUTABLE_NAME);
+            if (hGame)
+            {
+                char exePath[MAX_PATH];
+                GetModuleFileNameA(hGame, exePath, MAX_PATH);
+                DWORD64 baseAddr = SymLoadModuleEx(GetCurrentProcess(), NULL, exePath, NULL, (DWORD64)hGame, 0, NULL, 0);
+                if (baseAddr || GetLastError() == ERROR_SUCCESS)
+                {
+                    g_DbgHelpReady = true;
+                    Log::Info("DbgHelp fallback initialized (base=0x%p)", (void*)hGame);
+                }
+                else
+                    Log::Warn("DbgHelp SymLoadModuleEx failed (err=%d)", GetLastError());
+            }
+        }
+        else
+            Log::Warn("DbgHelp SymInitialize failed (err=%d)", GetLastError());
+    }
     VALIDATE_PROFILE_DETOUR(GCoreObjectArrayForDebugVisualizers, GObject);
     VALIDATE_PROFILE_DETOUR(GWorld, GWorld);
     VALIDATE_PROFILE_DETOUR(AGameModeBase::InitGameState, GameStateInit);
@@ -171,6 +248,9 @@ void SetupProfile()
     VALIDATE_PROFILE_DETOUR(StaticConstructObject_Internal, StaticConstructObject_Internal);
 
     GameProfile::SelectedGameProfile.IsUsingUpdatedStaticConstruct = true;
+
+    // Save all resolved offsets to cache for next launch
+    OffsetCache::Save();
 
     Hooks::SetupHooks();
 }

@@ -6,6 +6,7 @@
 #include "DaedalusLoader/Memory/mem.h"
 #include "DaedalusLoader/Utilities/Globals.h"
 #include "DaedalusLoader/Memory/CoreModLoader.h"
+#include "DaedalusLoader/Mod/ModDependencyResolver.h"
 #include "UE4/Ue4.hpp"
 #include "LoaderUI.h"
 #include "DaedalusLoader/Config/DaedalusConfig.h"
@@ -78,6 +79,12 @@ namespace Hooks
 				Log::Info("Engine Classes Loaded");
 				if (Global::GetGlobals()->CoreMods.size() > 0)
 				{
+					// Resolve dependency order before initialization
+					if (!ModDependencyResolver::SortByDependencies(Global::GetGlobals()->CoreMods))
+					{
+						Log::Error("Dependency resolution failed! Mods will be initialized in load order.");
+					}
+
 					for (size_t i = 0; i < Global::GetGlobals()->CoreMods.size(); i++)
 					{
 						auto CurrentCoreMod = Global::GetGlobals()->CoreMods[i];
@@ -293,6 +300,7 @@ namespace Hooks
 	void SetupHooks()
 	{
 		Log::Info("Setting Up Loader");
+		DaedalusConfig::GetConfig()->LoadConfig();
 		CreateThread(0, 0, InitHooks, 0, 0, 0);
 	}
 };
