@@ -10,6 +10,7 @@
 #pragma comment(lib, "dbghelp.lib")
 
 PVOID CrashHandler::s_Handler = nullptr;
+volatile bool CrashHandler::s_InsideSEHProtection = false;
 
 void CrashHandler::Install()
 {
@@ -34,6 +35,10 @@ void CrashHandler::Uninstall()
 
 LONG CALLBACK CrashHandler::VectoredHandler(EXCEPTION_POINTERS* pExInfo)
 {
+	// If we're inside an SEH-protected region, skip logging — SEH will handle it
+	if (s_InsideSEHProtection)
+		return EXCEPTION_CONTINUE_SEARCH;
+
 	DWORD code = pExInfo->ExceptionRecord->ExceptionCode;
 
 	// Only handle fatal exceptions, let non-fatal ones pass through

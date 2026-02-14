@@ -30,6 +30,7 @@ public:
 	std::vector<ModInfo> ModInfoList;
 	std::string GameName;
 	bool bIsMenuOpen;
+	volatile bool bCoreModsReady = false;  // Set true after all CoreMods are initialized
 	std::vector<class Mod*> CoreMods;
 	std::vector<BPFunctionWrapper> BPFunctionWrappers;
 	EventDispatcher eventSystem;

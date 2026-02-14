@@ -23,6 +23,9 @@ public:
 	// Check if handler is installed
 	static bool IsInstalled() { return s_Handler != nullptr; }
 
+	// Set to true when inside SEH-protected regions so the VEH skips logging
+	static volatile bool s_InsideSEHProtection;
+
 private:
 	// The actual exception handler callback
 	static LONG CALLBACK VectoredHandler(EXCEPTION_POINTERS* pExInfo);

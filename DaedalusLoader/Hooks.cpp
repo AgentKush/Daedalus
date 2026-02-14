@@ -100,6 +100,10 @@ namespace Hooks
 					}
 				}
 
+				// Signal that CoreMods are safe to access from the render thread
+				Global::GetGlobals()->bCoreModsReady = true;
+				Log::Info("CoreMods ready for UI display");
+
 				UE4::FTransform transform = UE4::FTransform::FTransform();
 				UE4::FActorSpawnParameters spawnParams = UE4::FActorSpawnParameters::FActorSpawnParameters();
 				if (GameProfile::SelectedGameProfile.StaticLoadObject)

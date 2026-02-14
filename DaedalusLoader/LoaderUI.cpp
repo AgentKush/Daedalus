@@ -1,5 +1,6 @@
 #include "LoaderUI.h"
 #include "DaedalusLoader/Mod/Mod.h"
+#include "DaedalusLoader/CrashHandler/CrashHandler.h"
 #include "Utilities/Logger.h"
 #include "Memory/mem.h"
 #include "Utilities/Dumper.h"
@@ -11,6 +12,7 @@ LoaderUI* LoaderUI::UI;
 
 // Forward declarations
 static void ApplyImGuiStyle();
+void DrawImGui();
 
 // Scale ImGui for the current resolution (call after CreateContext, before backend init)
 static float g_UIScale = 1.0f;
@@ -257,15 +259,68 @@ static bool IsPointerReadable(const void* ptr, size_t size)
 	}
 }
 
+// SEH-safe wrapper around DrawImGui — catches any AV from race conditions
+// Also sets the CrashHandler flag to suppress VEH logging (which writes minidumps per-frame)
+static void SafeDrawImGui_SEH()
+{
+	CrashHandler::s_InsideSEHProtection = true;
+	__try
+	{
+		DrawImGui();
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		// Silently skip this frame — mod pointers were mid-construction
+	}
+	CrashHandler::s_InsideSEHProtection = false;
+}
+
+// Inner dispatch helpers (contain C++ objects — cannot use __try directly)
+static void DispatchDrawImGuiInner() { Global::GetGlobals()->eventSystem.dispatchEvent("DrawImGui"); }
+static void DispatchDX11PresentInner(ID3D11Device* d, ID3D11DeviceContext* c, ID3D11RenderTargetView* r) { Global::GetGlobals()->eventSystem.dispatchEvent("DX11Present", d, c, r); }
+static void DispatchDX12PresentInner(IDXGISwapChain* s, ID3D12GraphicsCommandList* cl) { Global::GetGlobals()->eventSystem.dispatchEvent("DX12Present", s, cl); }
+
+// SEH wrappers for event dispatches (pure C — no C++ objects in scope)
+static void SafeDispatchDrawImGui_SEH()
+{
+	CrashHandler::s_InsideSEHProtection = true;
+	__try { DispatchDrawImGuiInner(); }
+	__except (EXCEPTION_EXECUTE_HANDLER) { }
+	CrashHandler::s_InsideSEHProtection = false;
+}
+
+static void SafeDispatchDX11Present_SEH(ID3D11Device* dev, ID3D11DeviceContext* ctx, ID3D11RenderTargetView* rtv)
+{
+	CrashHandler::s_InsideSEHProtection = true;
+	__try { DispatchDX11PresentInner(dev, ctx, rtv); }
+	__except (EXCEPTION_EXECUTE_HANDLER) { }
+	CrashHandler::s_InsideSEHProtection = false;
+}
+
+static void SafeDispatchDX12Present_SEH(IDXGISwapChain* sc, ID3D12GraphicsCommandList* cl)
+{
+	CrashHandler::s_InsideSEHProtection = true;
+	__try { DispatchDX12PresentInner(sc, cl); }
+	__except (EXCEPTION_EXECUTE_HANDLER) { }
+	CrashHandler::s_InsideSEHProtection = false;
+}
+
 void ShowCoreMods()
 {
 	if (!ImGui::CollapsingHeader("DLL Mods"))
 		return;
 
+	// Don't touch CoreMods until initialization is complete
+	if (!Global::GetGlobals()->bCoreModsReady)
+	{
+		ImGui::Text("Waiting for mods to initialize...");
+		return;
+	}
+
 	for (size_t i = 0; i < Global::GetGlobals()->CoreMods.size(); i++)
 	{
 		auto* mod = Global::GetGlobals()->CoreMods[i];
-		if (!mod || !IsPointerReadable(mod, sizeof(Mod)) || !mod->IsFinishedCreating) continue;
+		if (!mod || !mod->IsFinishedCreating) continue;
 
 		std::string str(mod->ModName.begin(), mod->ModName.end());
 		std::string ModLabel = str + "##cm" + std::to_string(i);
@@ -492,8 +547,8 @@ void LoaderUI::LoaderD3D11Present(IDXGISwapChain* pSwapChain, UINT SyncInterval,
 	if (Global::GetGlobals()->bIsMenuOpen)
 	{
 		ApplyImGuiStyle();
-		DrawImGui();
-		Global::GetGlobals()->eventSystem.dispatchEvent("DrawImGui");
+		SafeDrawImGui_SEH();
+		SafeDispatchDrawImGui_SEH();
 	}
 
 	ImGui::Render();
@@ -724,8 +779,8 @@ void LoaderUI::LoaderD3D12Present(IDXGISwapChain* pSwapChain, UINT SyncInterval,
 	if (Global::GetGlobals()->bIsMenuOpen)
 	{
 		ApplyImGuiStyle();
-		DrawImGui();
-		Global::GetGlobals()->eventSystem.dispatchEvent("DrawImGui");
+		SafeDrawImGui_SEH();
+		SafeDispatchDrawImGui_SEH();
 	}
 	ImGui::Render();
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), ui->pD3D12CommandList);
@@ -883,12 +938,12 @@ HRESULT __stdcall hookD3D11Present(IDXGISwapChain* pSwapChain, UINT SyncInterval
 	if (UI->ActiveRenderer == EDetectedRenderer::DX12)
 	{
 		UI->LoaderD3D12Present(pSwapChain, SyncInterval, Flags);
-		Global::GetGlobals()->eventSystem.dispatchEvent("DX12Present", pSwapChain, UI->pD3D12CommandList);
+		SafeDispatchDX12Present_SEH(pSwapChain, UI->pD3D12CommandList);
 	}
 	else
 	{
 		UI->LoaderD3D11Present(pSwapChain, SyncInterval, Flags);
-		Global::GetGlobals()->eventSystem.dispatchEvent("DX11Present", UI->pDevice, UI->pContext, UI->pRenderTargetView);
+		SafeDispatchDX11Present_SEH(UI->pDevice, UI->pContext, UI->pRenderTargetView);
 	}
 
 	return D3D11Present(pSwapChain, SyncInterval, Flags);

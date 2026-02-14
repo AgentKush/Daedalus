@@ -18,12 +18,14 @@ public:
 	std::string ModLoaderVersion;
 	bool UseMenuButton = 0;
 
-	// Dependency system - set these in your mod constructor
-	// Each string is the ModName of a required dependency
-	std::vector<std::string> Dependencies;
-
 	//ModInternals
 	bool IsFinishedCreating = 0;
+	
+	// Dependency system - set these in your mod constructor
+	// Each string is the ModName of a required dependency
+	// NOTE: This field MUST stay after IsFinishedCreating to preserve ABI compatibility
+	// with mods compiled against older Mod.h layouts
+	std::vector<std::string> Dependencies;
 	
 	//Used Internally to setup Hook Event System
 	void SetupHooks();
